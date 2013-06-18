@@ -1,0 +1,166 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Insert title here</title>
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.1/jquery.min.js"></script>
+
+<script>
+
+// for new webkit browsers, the .slice() method is named .webkitSlice()
+// similar for mozilla
+File.prototype.slice = File.prototype.webkitSlice || File.prototype.mozSlice || File.prototype.slice;
+
+var Uploader = function(file) {
+	this.chunk_size = 25000000;
+	this.slices = 0;
+	this.uploadedSlices = 0;
+	this.type = null;
+	this.file = null;
+	this.file_name = null;
+	this.uploading = null;
+	this.init(file);
+}
+	Uploader.prototype = {
+			
+			//check if you can resume or a new upload needs to be started
+			 init : function(file) {
+				this.file = file;
+				var jason;//response from server
+				var xhr;
+				var fd;
+				var output = document.getElementById("output");
+				xhr = new XMLHttpRequest();
+				fd = new FormData;
+				
+				if(window.File && window.Blob){
+					//all file API supported
+				}else{
+					alert('The file APIs are not fully supported in this browser. ');
+				}
+
+				var fileName = this.file.name;
+				this.file_name = fileName.slice(0,fileName.length-4);
+				this.type = fileName.slice(fileName.length-4, fileName.length);
+				console.log('File:');
+				console.log(file);
+				this.slices = Math.ceil(this.file.size/this.chunk_size);
+				
+				fd.append("name", this.file_name);
+				fd.append("resume", true);
+				fd.append("chunk_size", this.chunk_size);
+				fd.append("size", this.file.size);
+				
+				var self = this;
+				xhr.onreadystatechange = function(){
+					if (xhr.readyState == 4){
+						jason = Math.ceil(JSON.parse(xhr.response));
+						if(jason == 0){
+							console.log('File not found; start anew');
+							console.log("Uploading file " + self.file.name + " of size " + self.file.size + " bytes...");
+							self.uploading = true;
+							self.UploadFile();
+						}else{
+							if(jason == self.slices){
+								console.log("File already exists");
+							}
+							else{
+								console.log('Found partial file; resuming....');
+								self.uploading = true;
+								self.uploadedSlices = jason;
+								//alert(this.uploadedSlices);
+								self.UploadFile();
+							}
+						}
+					}
+				};
+				xhr.open("POST", "upload.php", true);
+				xhr.send(fd);
+			},
+			UploadFile: function (){
+				//if(this.uploading){
+					if(this.uploadedSlices != this.slices){
+					    var start = this.uploadedSlices * this.chunk_size;
+					    var end = Math.min(start + this.chunk_size, file.size);
+						var myBlob = file.slice(start, end);
+
+						this.UploadChunk(myBlob,this.uploadedSlices);
+					}else{
+						this.uploadedSlices = 0;
+						output.innerHTML = output.innerHTML + "File uploaded successfully! <br>";
+						console.log("File uploaded successfully");
+						
+					}
+				//}else
+				//	exit;
+
+			},
+
+			UploadChunk: function (bFile, chunk){
+				if(this.uploading){
+					var data = new FormData();
+					
+					data.append('file', bFile);
+					data.append('index', chunk);
+					data.append('name', this.file_name);
+					data.append('type', this.type);
+					data.append('totalSlices', this.slices);
+					data.append("size", this.file.size);
+					//alert(file_name);
+					var req = new XMLHttpRequest();
+					
+					self = this;
+				    req.onreadystatechange = function(){
+				    	if(req.readyState == 4){
+				    		//alert(self.uploadedSlices);
+				    		self.uploadedSlices++;
+				    		self.UploadFile();
+				    	}
+				    };	
+				    
+					req.open("POST", "upload.php", true);
+					req.onload = function(oEvent) {
+					    if (req.status == 200) {
+					      console.log("Uploaded chunk " + chunk + " of file " + this.file_name);
+					      
+					    } else {
+					      output.innerHTML = "Error " + req.status + " occurred uploading your file.<br \/>";
+					    }
+					  };
+					  req.send(data);
+				}else
+					return;			 
+				  },
+			stop: function (){
+				this.uploading = false;
+			}
+	}
+
+function sendForm(){
+	var upload;
+	var fileInput =  document.getElementById("inputFile");
+	var files = fileInput.files;
+	if (files.length === 0){
+		console.log('No input file found');
+		return;
+	}
+	file = files[0];
+	upload = new Uploader(file);
+}
+
+
+</script>
+</head>
+<body>
+
+<form id="uploadForm" enctype="multipart/form-data" method="post" name="fileinfo" >
+
+  <label>File to upload:</label>
+  <input id="inputFile" type="file" name="file" required />
+</form>
+<div id="output"></div>
+<!--  <a href="javascript:sendForm()">Stash the file!</a>-->
+<input id="clickMe" type="button" value="Upload File" onclick="sendForm();" />
+<input id="stopButton" type="button" value="Stop" onclick="stop();" />
+</body>
+</html>
