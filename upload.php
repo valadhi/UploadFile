@@ -36,6 +36,7 @@ if(isset($_REQUEST['chunk_size'])){//initialize request
 		closedir($handle);	
 	}
 	
+
 }else{//upload chunk request
 	if(!isset($_REQUEST['name'])) throw new Exception('Name required');
 	if(!preg_match('/^[-a-z0-9_][-a-z0-9_.\s]*$/i', $_REQUEST['name'])) throw new Exception('Name error');
