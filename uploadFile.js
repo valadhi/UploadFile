@@ -7,11 +7,10 @@ File.prototype.slice = File.prototype.webkitSlice || File.prototype.mozSlice || 
 var UploadItem = function(config){
 	
 	this.delegate = config.delegate; 
-	this.form = config.form;
 	this.ID = config.id;
 	
 	this.file = null;
-	this.state = null;
+	this.state = 'waiting';
 	this.file_name = null;
 	this.size = 0;
 	this.chunk_size = 25000000;
@@ -26,10 +25,10 @@ var UploadItem = function(config){
 
 
 UploadItem.prototype = {
-	start : function(file){
+	start : function(){
 		// Initialise click handlers!
 		//this.clickHandlers();
-		this.file = file;
+		//this.file = file;
 		//alert(this.ID);
 		var jason;//response from server
 		var xhr;
@@ -46,7 +45,7 @@ UploadItem.prototype = {
 
 		this.file_name = this.file.name;
 		console.log('File:');
-		console.log(this.file);
+		console.log("HERE" + this.file);
 		this.totalSlices = Math.ceil(this.file.size/this.chunk_size);
 		
 		fd.append("name", this.file_name);
@@ -99,7 +98,7 @@ UploadItem.prototype = {
 	
 	complete: function() {
 		this.uploadedSlices = 0;
-		output.innerHTML = output.innerHTML + "File uploaded successfully! <br>";
+		//output.innerHTML = output.innerHTML + "File uploaded successfully! <br>";
 		console.log("File uploaded successfully");
 		this.state = "done";
 		
@@ -157,40 +156,40 @@ UploadChunk: function (bFile, chunk){
 		if (!this.form) {
 			return;
 		}
-		
 		var self = this;
-		this.form.find('input[name="upload"]').click(function() {
-			
-			self.onClick();
+		
+		$("body").on("click", "#stopButton", function(){
+			console.log('Upload Stopped');
+			self.pause();
 		});
 		
-
-		
+		this.form.find('input[name="upload"]').click(function() {
+			self.onClick();
+		});
 		//this.form.find('input[name="upload"]').click($.proxy(this.onClick, this));
 	},
 	
 	onClick: function() {
 		
-		console.log('Upload ITEM Click on id');
-		console.log(this.ID);
+		//console.log('Upload ITEM Click on id');
+		//console.log(this.ID);
 		
 		var fileInput = this.form.find('input[name="file"]')[0];
 		var files = fileInput.files;
 		console.log(files);
-		
-		return;
-		
-		
-		var currID = $("#uploadButton").siblings().attr('rel:fileInput');
-		alert(currID);
+	
+		//var currID = $("#uploadButton").siblings().attr('rel:fileInput');
+		//alert(currID);
 	//	var fileInput =  document.getElementById("inputFile-" + currID);
 		var files = fileInput.files;
+		
 		if (files.length === 0){
 			console.log('No input file found');
 			return;
 		}
 		var file = files[0];
-		this.delegate.queue(file);
+		this.file = file;
+		this.delegate.queue(this);
 	},
 	
 	renderForm: function() {
@@ -199,7 +198,7 @@ UploadChunk: function (bFile, chunk){
 		
 		this.form.html('<label>File to upload:</label><input type="file" name="file" required />' +
 				  '<div class="output"></div><input type="button" name="upload" value="Upload File" />'+
-				  '<span class="stopButton">Stop</span><span id="addUpload" style="color:red">Add upload form</span>');
+				  '<span class="stopButton">Stop</span>');
 		
 		$('#upload').append(this.form);
 	}
@@ -208,37 +207,30 @@ UploadChunk: function (bFile, chunk){
 var UploadController = function() {
 
 	//this.type = null;
-	this.file = null;
+	//this.file = null;
 	//this.file_name = null;
 	//this.uploading = null;
 	//this.init(file);
-	this.fileCount = 0;
 	
+	this.nextUploadID = 0;
 	
 	this.uploads = [];
+	this.activeUploads = [];
+	
+	this.clickHandlers();
 	
 };
 	UploadController.prototype = {
 			
-			queue : function(file){
-				this.file = file;
-				//if(this.fileCount == 0)
-			
-				//var self = this;
-				var uploadItem = new UploadItem(this, this.fileCount);
-				
-				this.fileCount++;
-				//alert(this.fileCount);
-				//alert("upload ID " + this.fileCount);
-				this.uploads[uploadItem.ID] = uploadItem;
-				//this.uploads[1] = 3;
-				
-				if(this.fileCount == 1){
-					this.uploads[uploadItem.ID].start(this.file);
-					this.clickHandlers();
+			queue : function(item){
+				//this.fileCount++;
+				this.uploads[this.nextUploadID] = item;
+				if(this.activeUploads.length == 0){
+					this.activeUploads.push(item);
+					this.activeUploads[0].start();
+					}else{
+					this.activeUploads.push(item);
 				}
-				
-				//alert(this.uploads);
 			},
 			
 
@@ -246,14 +238,12 @@ var UploadController = function() {
 			clickHandlers: function(){
 				
 				var self = this;
-				
-				$("body").on("click", "#stopButton", function(){
-					console.log('Upload Stopped');
-					self.stop();
-				});
-				
 				$("body").on("click", "#addUpload", function(){
-					self.renderForm();
+					var upload = new UploadItem({
+						id: self.nextUploadID,
+						delegate: self
+					});
+					self.nextUploadID++;
 				});
 				
 			},
@@ -270,12 +260,19 @@ var UploadController = function() {
 			
 			complete: function(fileItem) {
 				
+				this.activeUploads.shift();
 				delete this.uploads[fileItem.ID];
 				//initiate next item in queue
-				
-				if(this.uploads[this.fileCount+1] !== null && this.uploads[this.fileCount+1] !== undefined){
-					this.uploads[this.fileCount+1].start();
+				if(this.activeUploads.length !=0 ){
+					this.activeUploads[0].start();
+				}else{
+					console.log("fnished queue");
 				}
+				/*if(this.uploads[this.nextUploadID+1] !== null && this.uploads[this.nextUploadID+1] !== undefined){
+					this.uploads[this.nextUploadID+1].start();
+				}else{
+					console.log("fnished queue");
+				}*/
 				alert(fileItem.ID + " file has completed");
 				
 				//fileItem.priority;
@@ -283,16 +280,15 @@ var UploadController = function() {
 			
 	};
 
-function sendForm(evt) {
+function sendForm() {
 	var form = $(this).parent();
 	
 	var fileInput = form.find('input[name="file"]')[0];
 	
 	var uploadID = form.find('input[name="uploadID"]').val();
 	
-	console.log(uploadID);
+	console.log("SEE: " + uploadID);
 	return;
-	
 		var currID = $("#uploadButton").siblings().attr('rel:fileInput');
 		alert(currID);
 	//	var fileInput =  document.getElementById("inputFile-" + currID);
@@ -309,9 +305,6 @@ function sendForm(evt) {
 $().ready(function() {
 	window.upload = new UploadController();
 	
-	var uploadItems = [];
-	window.uploadID = 1;
-	
 	/*
 	$('form.uploadForm').each(function() {
 		
@@ -325,14 +318,4 @@ $().ready(function() {
 		uploadItems.push(item);
 	});
 	*/
-	
-	for (var i=0; i< 3; i++) {
-		var item = new UploadItem({
-			delegate: window.upload,
-			id: uploadID
-		});
-		uploadID++;
-		
-		uploadItems.push(item);
-	}
 });
