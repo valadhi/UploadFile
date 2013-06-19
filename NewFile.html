@@ -7,16 +7,17 @@
 <script src="/FileUploader/uploadFile.js" type = "text/javascript"></script>
 </head>
 <body>
-
-<form id="uploadForm" enctype="multipart/form-data" method="post" name="fileinfo" >
-  <label>File to upload:</label>
-  <input id="inputFile" type="file" name="file[]" required />
-</form>
-<div id="output"></div>
-<input id="clickMe" type="button" value="Upload File" onclick="sendForm();" />
+<!-- 
+<form class="uploadForm" enctype="multipart/form-data" method="post" name="fileinfo" rel="1234" >
+	<input type="hidden" name="uploadID" value="122334" >
+  	<label id = "label">File to upload:</label>
+  	<input id="inputFile-0" type="file" name="file" required rel="fileInput"/>
+	<div id="output"></div>
+	<input id="uploadButton" type="button" name="upload" value="Upload File"/>
 	<span id="stopButton">Stop</span>
 	<span id="addUpload" style="color:red">Add upload form</span>
-	
+</form>
+-->
 <div id="upload"></div>
 	
 </body>
