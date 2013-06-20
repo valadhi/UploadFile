@@ -132,7 +132,7 @@ UploadAdapter.prototype = {
 			},
 			
 			cancel : function(){
-				this.form.remove();
+				//this.form.remove();
 				if(this.state !== "waiting"){
 					this.state = 'aborted';
 					console.log('Upload Stopped');
@@ -165,15 +165,6 @@ var UploadItem = function(config){
 
 UploadItem.prototype = {
 	
-//	complete: function() {
-//		
-//		this.form.find("div[class=output]").html("File uploaded successfully!");
-//				
-//		//$(this.form).find("div[class=output]").html("<div class=output>File uploaded successfully!</div>");
-//		console.log("File uploaded successfully");
-//		this.state = "done";
-//		this.delegate.complete(this);	
-//	}
 };
 
 var UploadOperation = function(config){
@@ -221,13 +212,25 @@ UploadOperation.prototype = {
 			});
 			
 			this.form.find('span[class="pauseButton"]').click(function() {
+				self.form.find('span[class="pauseButton"]').replaceWith('<span class="startButton">Start</span>');
 				self.uploadAdapter.pause();
+				//alert(uploadAdapter);
+				self.restartButtonClickHandler();
 			});
-			
+				
 			this.form.find('input[name="upload"]').click(function() {
 				self.startUpload();
 			});
 			//this.form.find('input[name="upload"]').click($.proxy(this.onClick, this));
+		},
+		
+		restartButtonClickHandler : function(){
+			var self = this;
+			this.form.find('span[class="startButton"]').click(function() {
+				self.form.find('span[class="startButton"]').replaceWith('<span class="pauseButton">Pause</span>');
+				self.clickHandlers();
+				self.start();
+			});
 		},
 		
 		startUpload: function() {
@@ -235,7 +238,7 @@ UploadOperation.prototype = {
 			//console.log('Upload ITEM Click on id');
 			//console.log(this.ID);
 
-			if(this.state !== 'paused'){
+			
 				var fileInput = this.form.find('input[name="file"]')[0];
 				var files = fileInput.files;
 				
@@ -252,9 +255,7 @@ UploadOperation.prototype = {
 				});
 				this.delegate.queue(this);
 				this.form.find("input[name=upload]").remove();
-			}else{//do resume
-				this.uploadAdapter.start();
-			}
+
 		},
 		
 		start : function(){
