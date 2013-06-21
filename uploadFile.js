@@ -132,10 +132,9 @@ UploadAdapter.prototype = {
 			},
 			
 			cancel : function(){
-				//this.form.remove();
 				if(this.state !== "waiting"){
 					this.state = 'aborted';
-					console.log('Upload Stopped');
+					console.log('Upload Aborted');
 				}
 				
 			},
@@ -151,15 +150,11 @@ var UploadItem = function(config){
 	//this.delegate = config.delegate; 
 	this.ID = config.id;
 	this.form = config.form;
-	
-	this.file = null;
-	this.state = 'waiting';
-	this.file_name = null;
-	this.size = 0;
+	this.file = config.file;
+	//this.state = 'waiting';
+	//this.file_name = null;
+	//this.size = 0;
 	//this.chunk_size = 25000000;
-
-	
-
 };
 
 
@@ -209,6 +204,7 @@ UploadOperation.prototype = {
 			
 			this.form.find('span[class="cancelButton"]').click(function() {
 				self.uploadAdapter.cancel();
+				self.form.remove();
 			});
 			
 			this.form.find('span[class="pauseButton"]').click(function() {
